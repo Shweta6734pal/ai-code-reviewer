@@ -1,7 +1,8 @@
 const express = require("express");
 const axios = require("axios");
 const authMiddleware = require("../middleware/authmiddleware");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { runGeminiReview } = require("../utils/geminiReview");
+const prisma = require("../config/prisma");
 
 const router = express.Router();
 
@@ -42,44 +43,54 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
     const cleanFilePath = filePath.replace(/^\/+/, "");
-    const githubUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/${cleanFilePath}`;
-    const response = await axios.get(githubUrl);
-    const code = response.data;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+    // Try main first, fall back to master
+    let code;
+    try {
+      const response = await axios.get(
+        `https://raw.githubusercontent.com/${owner}/${repo}/main/${cleanFilePath}`
+      );
+      code = response.data;
+    } catch {
+      const response = await axios.get(
+        `https://raw.githubusercontent.com/${owner}/${repo}/master/${cleanFilePath}`
+      );
+      code = response.data;
+    }
+
+    const review = await runGeminiReview(
+      typeof code === "string" ? code : JSON.stringify(code, null, 2),
+      cleanFilePath
+    );
+
+    // Save to database
+    await prisma.review.create({
+      data: {
+        userId: req.user.id,
+        repoUrl,
+        filePath: cleanFilePath,
+        review,
+      },
     });
 
-    const prompt = `
-You are a senior software engineer.
-
-Review this code and provide:
-
-1. Bugs
-2. Performance issues
-3. Security problems
-4. Clean code improvements
-5. Final rating out of 10
-
-CODE:
-${code}
-`;
-
-    const result = await model.generateContent(prompt);
-    const review = result.response.text();
-
-    res.json({
-      success: true,
-      review,
-    });
+    res.json({ success: true, review });
   } catch (err) {
-    console.log(err);
+    console.error(err);
+    res.status(500).json({ success: false, message: "Review failed" });
+  }
+});
 
-    res.status(500).json({
-      success: false,
-      message: "Review failed",
+// Get all reviews for the logged-in user
+router.get("/history", authMiddleware, async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: "desc" },
     });
+    res.json({ success: true, reviews });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Could not fetch reviews" });
   }
 });
 
