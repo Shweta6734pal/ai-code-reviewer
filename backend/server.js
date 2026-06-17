@@ -7,7 +7,24 @@ const authMiddleware = require("./middleware/authmiddleware");
 const authRoutes = require("./routes/auth");
 const reviewRoutes = require("./routes/review");
 const webhookRoutes = require("./routes/webhook");
+const rateLimit = require("express-rate-limit");
 
+
+const reviewLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,                 // 30 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many review requests. Please try again later."
+  }
+});
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
 console.log("Token loaded:", !!process.env.GITHUB_TOKEN); // ✅ now this will actually show true
 
 const app = express();
@@ -15,20 +32,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use(globalLimiter);
+app.use("/review", reviewLimiter, reviewRoutes);
 app.use("/auth", authRoutes);
-app.use("/review", reviewRoutes);
 app.use("/webhook", webhookRoutes);
 
-app.get("/", async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
+
+app.get("/", (req, res) => {
+  res.json({
+    message: "AI Code Reviewer API running"
+  });
 });
 
 app.get("/me", authMiddleware, async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user.userId },
-  });
-  res.json({ user }); // ✅ wrapped in { user } so frontend can do data.user
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal server error"
+    });
+  }
 });
 
 const PORT = process.env.PORT || 5000;

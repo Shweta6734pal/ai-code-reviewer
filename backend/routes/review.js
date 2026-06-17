@@ -66,7 +66,7 @@ router.post("/", authMiddleware, async (req, res) => {
     // Save to database
     await prisma.review.create({
       data: {
-        userId: req.user.id,
+        userId: req.user.userId,
         repoUrl,
         filePath: cleanFilePath,
         review,
@@ -84,7 +84,7 @@ router.post("/", authMiddleware, async (req, res) => {
 router.get("/history", authMiddleware, async (req, res) => {
   try {
     const reviews = await prisma.review.findMany({
-      where: { userId: req.user.id },
+      where: { userId: req.user.userId },
       orderBy: { createdAt: "desc" },
     });
     res.json({ success: true, reviews });

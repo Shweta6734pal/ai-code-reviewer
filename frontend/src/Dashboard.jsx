@@ -136,7 +136,7 @@ export default function Dashboard() {
         <div style={{ marginBottom: "32px" }}>
           <h2>Review Result</h2>
           <div style={{ background: "#1e1e1e", color: "#d4d4d4", padding: "20px", borderRadius: "8px", overflowX: "auto" }}>
-            <ReactMarkdown>{review}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{review}</ReactMarkdown>
           </div>
         </div>
       )}
