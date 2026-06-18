@@ -1,6 +1,8 @@
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Dashboard from "./Dashboard";
+import "./App.css";
+import "./Home.css";
 
 function App() {
   const navigate = useNavigate();
@@ -21,14 +23,38 @@ function App() {
   return (
     <Routes>
       <Route
-        path="/"
-        element={
-          <div style={{ textAlign: "center", marginTop: "100px" }}>
-            <h1>AI Code Reviewer</h1>
-            <button onClick={login}>Login with GitHub</button>
-          </div>
-        }
-      />
+  path="/"
+  element={
+    <div className="home">
+      <div className="home-card">
+
+        <h1 className="home-title">
+          🤖 AI Code Reviewer
+        </h1>
+
+        <p className="home-subtitle">
+          AI-powered code reviews for GitHub repositories using Gemini.
+          Review files instantly and track your review history.
+        </p>
+
+        <button
+          className="github-btn"
+          onClick={login}
+        >
+          Login with GitHub
+        </button>
+
+        <div className="features">
+          <span>⚡ Instant AI Reviews</span>
+          <span>📂 Review History</span>
+          <span>🔐 GitHub Authentication</span>
+          <span>🤖 Gemini Powered</span>
+        </div>
+
+      </div>
+    </div>
+  }
+/>
 
       <Route path="/dashboard" element={<Dashboard />} />
     </Routes>

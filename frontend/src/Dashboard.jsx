@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import "./Dashboard.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -13,20 +14,20 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // Auth guard — redirect if no token
   useEffect(() => {
     if (!token) {
       navigate("/");
       return;
     }
 
-    // Fetch user info
     fetch(`${API}/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -35,17 +36,22 @@ export default function Dashboard() {
       })
       .catch(() => navigate("/"));
 
-    // Fetch review history
     fetchHistory();
   }, []);
 
   async function fetchHistory() {
     try {
       const res = await fetch(`${API}/review/history`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
       const data = await res.json();
-      if (data.success) setHistory(data.reviews);
+
+      if (data.success) {
+        setHistory(data.reviews);
+      }
     } catch (err) {
       console.error("Failed to fetch history", err);
     }
@@ -68,14 +74,17 @@ export default function Dashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ repoUrl, filePath }),
+        body: JSON.stringify({
+          repoUrl,
+          filePath,
+        }),
       });
 
       const data = await res.json();
 
       if (data.success) {
         setReview(data.review);
-        fetchHistory(); // refresh history after new review
+        fetchHistory();
       } else {
         setError(data.message || "Review failed");
       }
@@ -92,74 +101,99 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "24px" }}>
+    <div className="dashboard">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-        <h1 style={{ margin: 0 }}>🤖 AI Code Reviewer</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <div className="header">
+        <h1 className="logo">🤖 AI Code Reviewer</h1>
+
+        <div className="user-section">
           {user && <span>👋 {user.username}</span>}
-          <button onClick={handleLogout} style={{ padding: "8px 16px", cursor: "pointer" }}>
+
+          <button className="logout-btn" onClick={handleLogout}>
             Logout
           </button>
         </div>
       </div>
 
       {/* Review Form */}
-      <div style={{ background: "#f5f5f5", padding: "24px", borderRadius: "8px", marginBottom: "32px" }}>
-        <h2 style={{ marginTop: 0 }}>Review a File</h2>
+      <div className="card">
+        <h2>Review a File</h2>
+
         <input
+          className="input"
           type="text"
           placeholder="GitHub Repo URL (e.g. https://github.com/user/repo)"
           value={repoUrl}
           onChange={(e) => setRepoUrl(e.target.value)}
-          style={{ width: "100%", padding: "10px", marginBottom: "12px", boxSizing: "border-box" }}
         />
+
         <input
+          className="input"
           type="text"
           placeholder="File path (e.g. src/index.js)"
           value={filePath}
           onChange={(e) => setFilePath(e.target.value)}
-          style={{ width: "100%", padding: "10px", marginBottom: "12px", boxSizing: "border-box" }}
         />
-        {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {error && (
+          <p className="error-message">
+            {error}
+          </p>
+        )}
+
         <button
-          onClick={handleReview}
-          disabled={loading}
-          style={{ padding: "10px 24px", cursor: "pointer", background: "#2da44e", color: "white", border: "none", borderRadius: "6px" }}
-        >
-          {loading ? "Reviewing..." : "Review Code"}
-        </button>
+  className="review-btn"
+  onClick={handleReview}
+  disabled={loading}
+>
+  {loading ? "🔄 Analyzing with Gemini..." : "🚀 Review Code"}
+</button>
       </div>
 
       {/* Review Output */}
       {review && (
-        <div style={{ marginBottom: "32px" }}>
-          <h2>Review Result</h2>
-          <div style={{ background: "#1e1e1e", color: "#d4d4d4", padding: "20px", borderRadius: "8px", overflowX: "auto" }}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{review}</ReactMarkdown>
+        <div className="card">
+          <h2>📋 AI Review Report</h2>
+
+          <div className="review-output">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {review}
+            </ReactMarkdown>
           </div>
         </div>
       )}
 
       {/* Review History */}
-      <div>
+      <div className="card">
         <h2>Review History</h2>
+
         {history.length === 0 ? (
-          <p style={{ color: "#888" }}>No reviews yet. Review a file above to get started.</p>
+          <div className="empty-state">
+  <h3>No Reviews Yet</h3>
+  <p>
+    Submit your first file above to generate an AI code review.
+  </p>
+</div>
         ) : (
           history.map((item) => (
             <div
               key={item.id}
-              style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "16px", cursor: "pointer" }}
+              className="history-item"
               onClick={() => setReview(item.review)}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong>📄 {item.filePath}</strong>
-                <span style={{ fontSize: "12px", color: "#888" }}>
+              <div className="history-header">
+                <div className="file-name">
+  📄 {item.filePath}
+</div>
+
+                <span className="history-date">
                   {new Date(item.createdAt).toLocaleString()}
                 </span>
               </div>
-              <p style={{ margin: "6px 0 0", color: "#555", fontSize: "14px" }}>{item.repoUrl}</p>
+
+              <p className="repo-url">
+  🔗 {item.repoUrl}
+</p>
             </div>
           ))
         )}
