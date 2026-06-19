@@ -247,3 +247,30 @@
     gap: 8px;
   }
 }
+
+.install-btn {
+  border: none;
+  background: #111827;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.install-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(17, 24, 39, 0.2);
+}
+
+.install-btn.large {
+  margin-top: 20px;
+  padding: 15px 24px;
+}
+
+.helper-text {
+  color: #6b7280;
+  line-height: 1.7;
+  margin-top: 10px;
+}

@@ -6,6 +6,10 @@ const axios = require("axios");
 const tokenCache = new Map();
 
 function getPrivateKey() {
+  if (process.env.GITHUB_APP_PRIVATE_KEY) {
+    return process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n");
+  }
+
   const keyPath = path.resolve(process.cwd(), process.env.GITHUB_APP_PRIVATE_KEY_PATH);
   return fs.readFileSync(keyPath, "utf8");
 }

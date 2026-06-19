@@ -100,14 +100,21 @@ export default function Dashboard() {
     navigate("/");
   }
 
+  function installGitHubApp() {
+    window.location.href = "https://github.com/apps/ai-code-reviewer-by-shweta-pal/installations/new";
+  }
+
   return (
     <div className="dashboard">
-      {/* Header */}
       <div className="header">
         <h1 className="logo">🤖 AI Code Reviewer</h1>
 
         <div className="user-section">
           {user && <span>👋 {user.username}</span>}
+
+          <button className="install-btn" onClick={installGitHubApp}>
+            Install GitHub App
+          </button>
 
           <button className="logout-btn" onClick={handleLogout}>
             Logout
@@ -115,7 +122,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Review Form */}
       <div className="card">
         <h2>Review a File</h2>
 
@@ -135,22 +141,31 @@ export default function Dashboard() {
           onChange={(e) => setFilePath(e.target.value)}
         />
 
-        {error && (
-          <p className="error-message">
-            {error}
-          </p>
-        )}
+        {error && <p className="error-message">{error}</p>}
 
         <button
-  className="review-btn"
-  onClick={handleReview}
-  disabled={loading}
->
-  {loading ? "🔄 Analyzing with Gemini..." : "🚀 Review Code"}
-</button>
+          className="review-btn"
+          onClick={handleReview}
+          disabled={loading}
+        >
+          {loading ? "🔄 Analyzing with Gemini..." : "🚀 Review Code"}
+        </button>
       </div>
 
-      {/* Review Output */}
+      <div className="card">
+        <h2>Automatic Pull Request Review</h2>
+
+        <p className="helper-text">
+          Install the GitHub App on a repository. When a pull request is opened,
+          this app will automatically review changed files and post an AI review
+          comment on the PR.
+        </p>
+
+        <button className="install-btn large" onClick={installGitHubApp}>
+          Install GitHub App
+        </button>
+      </div>
+
       {review && (
         <div className="card">
           <h2>📋 AI Review Report</h2>
@@ -163,17 +178,14 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Review History */}
       <div className="card">
         <h2>Review History</h2>
 
         {history.length === 0 ? (
           <div className="empty-state">
-  <h3>No Reviews Yet</h3>
-  <p>
-    Submit your first file above to generate an AI code review.
-  </p>
-</div>
+            <h3>No Reviews Yet</h3>
+            <p>Submit your first file above to generate an AI code review.</p>
+          </div>
         ) : (
           history.map((item) => (
             <div
@@ -182,18 +194,14 @@ export default function Dashboard() {
               onClick={() => setReview(item.review)}
             >
               <div className="history-header">
-                <div className="file-name">
-  📄 {item.filePath}
-</div>
+                <div className="file-name">📄 {item.filePath}</div>
 
                 <span className="history-date">
                   {new Date(item.createdAt).toLocaleString()}
                 </span>
               </div>
 
-              <p className="repo-url">
-  🔗 {item.repoUrl}
-</p>
+              <p className="repo-url">🔗 {item.repoUrl}</p>
             </div>
           ))
         )}

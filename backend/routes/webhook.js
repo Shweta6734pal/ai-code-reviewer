@@ -1,4 +1,5 @@
 const axios = require("axios");
+const crypto = require("crypto");
 const express = require("express");
 const { runGeminiReview } = require("../utils/geminiReview");
 const prisma = require("../config/prisma");
@@ -19,6 +20,42 @@ function isReviewable(filename) {
   return REVIEWABLE_EXTENSIONS.some((ext) => filename.endsWith(ext));
 }
 
+function verifyGitHubSignature(req) {
+  const signature = req.headers["x-hub-signature-256"];
+  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.error("GITHUB_WEBHOOK_SECRET is not configured");
+    return false;
+  }
+
+  if (!signature) {
+    console.error("Missing X-Hub-Signature-256 header");
+    return false;
+  }
+
+  if (!req.rawBody) {
+    console.error("Missing raw request body for webhook verification");
+    return false;
+  }
+
+  const expectedSignature =
+    "sha256=" +
+    crypto
+      .createHmac("sha256", secret)
+      .update(req.rawBody)
+      .digest("hex");
+
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+}
+
 async function postPRComment(owner, repo, prNumber, body, installationId) {
   const url = `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`;
   const token = await getInstallationToken(installationId);
@@ -36,6 +73,12 @@ async function postPRComment(owner, repo, prNumber, body, installationId) {
 }
 
 router.post("/github", async (req, res) => {
+    if (!verifyGitHubSignature(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid GitHub webhook signature",
+    });
+  }
   const deliveryId = req.headers["x-github-delivery"];
   const event = req.headers["x-github-event"];
   const action = req.body.action;

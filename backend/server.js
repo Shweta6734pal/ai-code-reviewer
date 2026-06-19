@@ -31,7 +31,11 @@ console.log("GitHub App installation ID loaded:", !!process.env.GITHUB_APP_INSTA
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 
 app.use(globalLimiter);
 app.use("/review", reviewLimiter, reviewRoutes);
