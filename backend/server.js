@@ -25,12 +25,17 @@ const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
 });
-console.log("Token loaded:", !!process.env.GITHUB_TOKEN); // ✅ now this will actually show true
+console.log("GitHub App ID loaded:", !!process.env.GITHUB_APP_ID);
+console.log("GitHub App installation ID loaded:", !!process.env.GITHUB_APP_INSTALLATION_ID);
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 
 app.use(globalLimiter);
 app.use("/review", reviewLimiter, reviewRoutes);

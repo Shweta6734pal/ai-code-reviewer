@@ -24,3 +24,14 @@ model Review {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 }
+
+
+// Tracks GitHub webhook deliveries we've already processed,
+// so retries / duplicate subscriptions don't trigger duplicate work.
+model WebhookDelivery {
+  id         Int      @id @default(autoincrement())
+  deliveryId String   @unique // value of the X-GitHub-Delivery header
+  event      String
+  action     String?
+  createdAt  DateTime @default(now())
+}

@@ -3,3 +3,7 @@ node_modules
 .env
 
 /generated/prisma
+
+# GitHub App private key — never commit this
+keys/
+*.pem

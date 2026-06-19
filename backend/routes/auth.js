@@ -84,10 +84,10 @@ process.env.JWT_SECRET,
 
 );
 
-res.redirect(
- `http://localhost:5173/dashboard?token=${token}`
-);
 
+res.redirect(
+  `${process.env.FRONTEND_URL}/dashboard?token=${token}`
+);
 }
 
 catch(error){

@@ -1,8 +1,10 @@
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+
 import Dashboard from "./Dashboard";
 import "./App.css";
 import "./Home.css";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function App() {
   const navigate = useNavigate();
@@ -16,9 +18,13 @@ function App() {
     }
   }, [navigate]);
 
-  const login = () => {
-    window.location.href = "http://localhost:5000/auth/github";
-  };
+  
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const login = () => {
+  window.location.href = `${API}/auth/github`;
+};
+  
 
   return (
     <Routes>
