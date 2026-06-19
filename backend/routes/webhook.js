@@ -1,62 +1,11 @@
-// const axios = require("axios");
-// const express = require("express");
-// const router = express.Router();
-
-// router.post("/github", async (req, res) => {
-//     console.log("Webhook hit!");
-
-//     try {
-//         const event = req.headers["x-github-event"];
-
-//         console.log("Event:", event);
-//         console.log("Action:", req.body.action);
-
-//         if (
-//             event === "pull_request" &&
-//             req.body.action === "opened"
-//         ) {
-//             const pr = req.body.pull_request;
-
-//             console.log("PR Title:", pr.title);
-
-//             const filesUrl = pr.url + "/files";
-
-//             console.log("Fetching:", filesUrl);
-
-//             const response = await axios.get(filesUrl, {
-//                 headers: {
-//                     Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-//                     Accept: "application/vnd.github+json",
-//                 },
-//             });
-
-            
-
-//             console.log(
-//                 JSON.stringify(response.data, null, 2)
-//             );
-//         }
-
-//         res.sendStatus(200);
-//     } catch (error) {
-//         console.error(
-//             error.response?.data || error.message
-//         );
-//         res.sendStatus(500);
-//     }
-// });
-
-// module.exports = router;
-
-
-
 const axios = require("axios");
 const express = require("express");
 const { runGeminiReview } = require("../utils/geminiReview");
+const prisma = require("../config/prisma");
+const { getInstallationToken } = require("../config/githubApp");
 
 const router = express.Router();
 
-// File extensions worth reviewing (skip binaries, lock files, etc.)
 const REVIEWABLE_EXTENSIONS = [
   ".js", ".jsx", ".ts", ".tsx",
   ".py", ".java", ".c", ".cpp", ".cs",
@@ -64,19 +13,22 @@ const REVIEWABLE_EXTENSIONS = [
   ".rs", ".html", ".css", ".vue", ".svelte",
 ];
 
+console.log("Webhook router loaded");
+
 function isReviewable(filename) {
   return REVIEWABLE_EXTENSIONS.some((ext) => filename.endsWith(ext));
 }
 
-async function postPRComment(owner, repo, prNumber, body) {
+async function postPRComment(owner, repo, prNumber, body, installationId) {
   const url = `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`;
+  const token = await getInstallationToken(installationId);
 
   await axios.post(
     url,
     { body },
     {
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
       },
     }
@@ -84,58 +36,94 @@ async function postPRComment(owner, repo, prNumber, body) {
 }
 
 router.post("/github", async (req, res) => {
-  console.log("Webhook hit!");
+  const deliveryId = req.headers["x-github-delivery"];
+  const event = req.headers["x-github-event"];
+  const action = req.body.action;
 
-  // Respond to GitHub immediately — webhooks expect a fast 200
+  console.log("================================");
+  console.log("Webhook hit!");
+  console.log("Delivery ID:", deliveryId);
+  console.log("Event:", event);
+  console.log("Action:", action);
+  console.log("PID:", process.pid);
+
   res.sendStatus(200);
 
-  try {
-    const event = req.headers["x-github-event"];
-    console.log("Event:", event, "| Action:", req.body.action);
+  if (!deliveryId) {
+    console.warn("No X-GitHub-Delivery header present - skipping dedupe, processing anyway.");
+  } else {
+    try {
+      await prisma.webhookDelivery.create({
+        data: { deliveryId, event: event || "unknown", action },
+      });
+    } catch (err) {
+      if (err.code === "P2002") {
+        console.log(`Duplicate delivery ${deliveryId} ignored.`);
+        return;
+      }
 
-    if (event !== "pull_request" || req.body.action !== "opened") {
+      console.error("Idempotency check failed unexpectedly:", err.message);
+    }
+  }
+
+  try {
+    console.log("Event:", event, "| Action:", action);
+
+    if (event !== "pull_request" || action !== "opened") {
+      return;
+    }
+
+    const installationId = req.body.installation?.id;
+
+    if (!installationId) {
+      console.error("Missing GitHub App installation ID in webhook payload.");
       return;
     }
 
     const pr = req.body.pull_request;
-    const repo_data = req.body.repository;
-    const owner = repo_data.owner.login;
-    const repo = repo_data.name;
+    const repoData = req.body.repository;
+    const owner = repoData.owner.login;
+    const repo = repoData.name;
     const prNumber = pr.number;
 
     console.log(`PR #${prNumber} opened in ${owner}/${repo}: "${pr.title}"`);
 
-    // 1. Fetch list of changed files in the PR
+    const installationToken = await getInstallationToken(installationId);
+
     const filesUrl = `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`;
     const filesResponse = await axios.get(filesUrl, {
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Authorization: `Bearer ${installationToken}`,
         Accept: "application/vnd.github+json",
       },
     });
 
     const allFiles = filesResponse.data;
     const filesToReview = allFiles.filter(
-      (f) => f.status !== "removed" && isReviewable(f.filename)
+      (file) => file.status !== "removed" && isReviewable(file.filename)
     );
 
     console.log(`${allFiles.length} files changed, ${filesToReview.length} reviewable`);
 
     if (filesToReview.length === 0) {
       await postPRComment(
-        owner, repo, prNumber,
-        "🤖 **AI Code Reviewer**\n\nNo reviewable source files found in this PR (only config/binary/removed files)."
+        owner,
+        repo,
+        prNumber,
+        "AI Code Reviewer\n\nNo reviewable source files found in this PR.",
+        installationId
       );
       return;
     }
 
-    // 2. Post an initial "reviewing..." comment so the author knows it's working
     await postPRComment(
-      owner, repo, prNumber,
-      `🤖 **AI Code Reviewer**\n\nReviewing ${filesToReview.length} file(s)... ⏳`
+      owner,
+      repo,
+      prNumber,
+      `AI Code Reviewer\n\nReviewing ${filesToReview.length} file(s)...`,
+      installationId
     );
 
-    // 3. For each file, fetch its content and run Gemini review
     const reviews = [];
 
     for (const file of filesToReview) {
@@ -144,7 +132,7 @@ router.post("/github", async (req, res) => {
 
         const contentResponse = await axios.get(file.raw_url, {
           headers: {
-            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+            Authorization: `Bearer ${installationToken}`,
           },
         });
 
@@ -164,22 +152,27 @@ router.post("/github", async (req, res) => {
       }
     }
 
-    // 4. Build and post the final combined review comment
     const commentParts = [
-      "🤖 **AI Code Review**\n",
+      "AI Code Review\n",
       `Reviewed **${reviews.length}** file(s) in this PR.\n`,
       "---",
     ];
 
     for (const { filename, review } of reviews) {
-      commentParts.push(`\n### 📄 \`${filename}\`\n`);
+      commentParts.push(`\n### \`${filename}\`\n`);
       commentParts.push(review);
       commentParts.push("\n---");
     }
 
-    await postPRComment(owner, repo, prNumber, commentParts.join("\n"));
+    await postPRComment(
+      owner,
+      repo,
+      prNumber,
+      commentParts.join("\n"),
+      installationId
+    );
 
-    console.log(`Done — posted review for PR #${prNumber}`);
+    console.log(`Done - posted review for PR #${prNumber}`);
   } catch (error) {
     console.error("Webhook handler error:", error.response?.data || error.message);
   }
