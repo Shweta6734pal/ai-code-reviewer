@@ -1,5 +1,4 @@
 import { Routes, Route, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import Dashboard from "./Dashboard";
 import "./App.css";
 import "./Home.css";
@@ -9,15 +8,12 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 function App() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get("token");
+  const token = new URLSearchParams(window.location.search).get("token");
 
-    if (token) {
-      localStorage.setItem("token", token);
-      window.history.replaceState({}, "", "/dashboard");
-      navigate("/dashboard", { replace: true });
-    }
-  }, [navigate]);
+  if (token) {
+    localStorage.setItem("token", token);
+    window.history.replaceState({}, "", "/dashboard");
+  }
 
   const login = () => {
     window.location.href = `${API}/auth/github`;
@@ -30,19 +26,14 @@ function App() {
         element={
           <div className="home">
             <div className="home-card">
-              <h1 className="home-title">
-                🤖 AI Code Reviewer
-              </h1>
+              <h1 className="home-title">🤖 AI Code Reviewer</h1>
 
               <p className="home-subtitle">
                 AI-powered code reviews for GitHub repositories using Gemini.
                 Review files instantly and track your review history.
               </p>
 
-              <button
-                className="github-btn"
-                onClick={login}
-              >
+              <button className="github-btn" onClick={login}>
                 Login with GitHub
               </button>
 
