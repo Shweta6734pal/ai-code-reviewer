@@ -94,14 +94,12 @@ res.redirect(
 );
 }
 
-catch(error){
+catch (error) {
+  console.error("GitHub OAuth error:", error.response?.data || error.message);
 
-console.log(error);
-
-res.status(500).json({
-message:"Authentication failed"
-});
-
+  res.status(500).json({
+    message: "Authentication failed",
+  });
 }
 
 });
