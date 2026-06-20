@@ -29,6 +29,7 @@ console.log("GitHub App ID loaded:", !!process.env.GITHUB_APP_ID);
 console.log("GitHub App installation ID loaded:", !!process.env.GITHUB_APP_INSTALLATION_ID);
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(cors());
 app.use(express.json({
