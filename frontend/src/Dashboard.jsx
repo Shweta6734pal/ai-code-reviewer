@@ -101,16 +101,22 @@ export default function Dashboard() {
   }
 
   function installGitHubApp() {
-    window.location.href = "https://github.com/apps/ai-code-reviewer-by-shweta-pal/installations/new";
+    window.location.href =
+      "https://github.com/apps/ai-code-reviewer-by-shweta-pal/installations/new";
   }
 
   return (
     <div className="dashboard">
       <div className="header">
-        <h1 className="logo">🤖 AI Code Reviewer</h1>
+        <div>
+          <h1 className="logo">AI Code Reviewer</h1>
+          <p className="dashboard-subtitle">
+            Review GitHub files manually or automate pull request feedback.
+          </p>
+        </div>
 
         <div className="user-section">
-          {user && <span>👋 {user.username}</span>}
+          {user && <span>{user.username}</span>}
 
           <button className="install-btn" onClick={installGitHubApp}>
             Install GitHub App
@@ -128,7 +134,7 @@ export default function Dashboard() {
         <input
           className="input"
           type="text"
-          placeholder="GitHub Repo URL (e.g. https://github.com/user/repo)"
+          placeholder="Repository URL, for example https://github.com/user/repo"
           value={repoUrl}
           onChange={(e) => setRepoUrl(e.target.value)}
         />
@@ -136,7 +142,7 @@ export default function Dashboard() {
         <input
           className="input"
           type="text"
-          placeholder="File path (e.g. src/index.js)"
+          placeholder="File path, for example src/index.js"
           value={filePath}
           onChange={(e) => setFilePath(e.target.value)}
         />
@@ -148,7 +154,7 @@ export default function Dashboard() {
           onClick={handleReview}
           disabled={loading}
         >
-          {loading ? "🔄 Analyzing with Gemini..." : "🚀 Review Code"}
+          {loading ? "Analyzing with Gemini..." : "Review Code"}
         </button>
       </div>
 
@@ -157,8 +163,8 @@ export default function Dashboard() {
 
         <p className="helper-text">
           Install the GitHub App on a repository. When a pull request is opened,
-          this app will automatically review changed files and post an AI review
-          comment on the PR.
+          this app reviews changed files and posts an AI review comment on the
+          PR.
         </p>
 
         <button className="install-btn large" onClick={installGitHubApp}>
@@ -168,7 +174,7 @@ export default function Dashboard() {
 
       {review && (
         <div className="card">
-          <h2>📋 AI Review Report</h2>
+          <h2>AI Review Report</h2>
 
           <div className="review-output">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -183,7 +189,7 @@ export default function Dashboard() {
 
         {history.length === 0 ? (
           <div className="empty-state">
-            <h3>No Reviews Yet</h3>
+            <h3>No reviews yet</h3>
             <p>Submit your first file above to generate an AI code review.</p>
           </div>
         ) : (
@@ -194,14 +200,14 @@ export default function Dashboard() {
               onClick={() => setReview(item.review)}
             >
               <div className="history-header">
-                <div className="file-name">📄 {item.filePath}</div>
+                <div className="file-name">{item.filePath}</div>
 
                 <span className="history-date">
                   {new Date(item.createdAt).toLocaleString()}
                 </span>
               </div>
 
-              <p className="repo-url">🔗 {item.repoUrl}</p>
+              <p className="repo-url">{item.repoUrl}</p>
             </div>
           ))
         )}

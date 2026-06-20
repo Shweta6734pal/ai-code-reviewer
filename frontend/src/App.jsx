@@ -26,22 +26,24 @@ function App() {
         element={
           <div className="home">
             <div className="home-card">
-              <h1 className="home-title">🤖 AI Code Reviewer</h1>
+              <p className="home-eyebrow">GitHub code review automation</p>
+
+              <h1 className="home-title">AI Code Reviewer</h1>
 
               <p className="home-subtitle">
-                AI-powered code reviews for GitHub repositories using Gemini.
-                Review files instantly and track your review history.
+                Review repository files instantly and automate pull request
+                feedback with AI-powered code analysis.
               </p>
 
               <button className="github-btn" onClick={login}>
-                Login with GitHub
+                Continue with GitHub
               </button>
 
               <div className="features">
-                <span>⚡ Instant AI Reviews</span>
-                <span>📂 Review History</span>
-                <span>🔐 GitHub Authentication</span>
-                <span>🤖 Gemini Powered</span>
+                <span>Manual file reviews</span>
+                <span>Automatic pull request comments</span>
+                <span>GitHub OAuth authentication</span>
+                <span>Review history dashboard</span>
               </div>
             </div>
           </div>
