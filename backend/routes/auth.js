@@ -6,11 +6,15 @@ const prisma = require("../config/prisma");
 const router = express.Router();
 
 router.get("/github", (req, res) => {
+  const params = new URLSearchParams({
+    client_id: process.env.GITHUB_CLIENT_ID,
+    redirect_uri: process.env.GITHUB_CALLBACK_URL,
+    scope: "user",
+  });
 
-    const redirectUrl =
-      `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=user`;
+  const redirectUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
 
-    res.redirect(redirectUrl);
+  res.redirect(redirectUrl);
 });
 
 
