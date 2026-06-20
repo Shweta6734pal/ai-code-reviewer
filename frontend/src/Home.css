@@ -21,10 +21,16 @@ body{
 
 .home-title{
     font-size:3rem;
+    line-height:1.2;
     margin-bottom:15px;
+    padding:0.12em 0;
     background:linear-gradient(90deg,#7c3aed,#2563eb);
     -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
     color:transparent;
+    display:inline-block;
+    overflow:visible;
 }
 
 .home-subtitle{
